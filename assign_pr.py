@@ -175,7 +175,7 @@ def main():
         answers = prompt(questions, style=custom_style_1)
         selected_tutors = answers['tutor_select']
         # store selected user_ids designated as the peer reviewers
-        logger.info('選ばれたチューターをご確認ください：')
+        logger.info('選ばれたチューターを確認：')
         for i in selected_tutors:
             logger.info(colored.blue(i))
         questions = [
