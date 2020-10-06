@@ -5,13 +5,14 @@ from __future__ import print_function, unicode_literals
 import argparse
 import json
 import logging
+import sys
 
 import requests
 # fancy CLI
 from PyInquirer import prompt
 from clint.textui import colored
 from examples import custom_style_1
-from prettytable import PrettyTable
+#from prettytable import PrettyTable
 
 API_URL = 'https://unr.canvaslms.com/'
 
@@ -20,6 +21,8 @@ console_handler.setLevel(logging.DEBUG)
 logger = logging.getLogger('dev')
 logger.setLevel(logging.INFO)
 logger.addHandler(console_handler)
+
+CONFIRM_MESSAGE = "以上の内容でよろしいですか？"
 
 
 def create_get_request(req_url, req_header, req_data=None):
@@ -50,26 +53,37 @@ def main():
     parser = argparse.ArgumentParser(
         description='Assigns specified students as peer reviewers for indicated assignment. '
                     'Requires API token from a professor for authentication.')
-    parser.add_argument('--token', dest='API_TOKEN', metavar='token', type=str, nargs=1, default='',
-                        help='API token of professor. Can be generated from Settings on the Canvas website.',
-                        required=True)
+    parser.add_argument('--token', dest='API_TOKEN', metavar='token', type=str, nargs='?',
+                        help='API token of professor. Can be generated from Settings on the Canvas website.')
     args = parser.parse_args()
-    api_token_file = args.API_TOKEN[0]
+
+    # if no argument provided for token filename, prompt for it
+    if args.API_TOKEN is None:
+        questions = [
+            {
+                'type': 'input',
+                'name': 'token_file',
+                'message': 'トークンのファイル名を入力：',
+            }
+        ]
+        answers = prompt(questions, style=custom_style_1)
+        api_token_file = answers['token_file']
+    else:
+        api_token_file = args.API_TOKEN
 
     API_TOKEN = ''
     # open API token text file and get the line from it
-    logger.info(f'Attempting to read {api_token_file}...')
+    logger.info(f'{api_token_file}を読み込み中...')
     try:
         f = open(api_token_file, encoding='utf-8')
         API_TOKEN = f.readline()
         logger.info(colored.green('API token file read successfully.'))
     except IOError as e:
         logger.error(colored.red(f'I/O error {e.errno}: {e.strerror}'))
-        exit(-1)
+        sys.exit()
     # except:
     # logger.error(colored.red('Error reading API token file. Check the filename and ensure that it is correct.'))
     AUTH_HEADER = {'Authorization': f'Bearer {API_TOKEN}'.strip('\n')}
-
     # get course number
     proceed = False
     course_number = 0
@@ -93,7 +107,7 @@ def main():
             questions = [
                 {
                     'type': 'confirm',
-                    'message': '以上の内容で宜しいですか？',
+                    'message': CONFIRM_MESSAGE,
                     'name': 'confirm_course',
                     'default': False,
                 }
@@ -125,7 +139,7 @@ def main():
             questions = [
                 {
                     'type': 'confirm',
-                    'message': '以上の内容で宜しいですか？',
+                    'message': CONFIRM_MESSAGE,
                     'name': 'confirm_assignment',
                     'default': False,
                 }
@@ -144,12 +158,12 @@ def main():
         user_dict[user['short_name']] = user['id']
 
     # display users
-    table_students = PrettyTable()
-    table_students.field_names = ['名前', 'ユーザー番号']
-    logger.info(f"{course_name}のユーザー:")
-    for i in user_dict:
-        table_students.add_row([i, user_dict[i]])
-    logger.info(table_students)
+    #table_students = PrettyTable()
+    #table_students.field_names = ['名前', 'ユーザー番号']
+    #logger.info(f"{course_name}のユーザー:")
+    #for i in user_dict:
+    #    table_students.add_row([i, user_dict[i]])
+    #logger.info(table_students)
     # user dictionary complete
 
     # acquire user_id of people who will be peer reviewing
@@ -181,7 +195,7 @@ def main():
         questions = [
             {
                 'type': 'confirm',
-                'message': '以上の内容で宜しいですか？',
+                'message': CONFIRM_MESSAGE,
                 'name': 'confirm_tutors',
                 'default': False,
             }
@@ -224,13 +238,13 @@ def main():
     submission_list = []
 
     # ** for testing
-    for i in range(0, 12):
-        submission_list.append(i + 42341231)
+    #for i in range(0, 12):
+    #    submission_list.append(i + 42341231)
     # ** for testing
 
     if 'errors' in request_submissions:
         logger.error(colored.red(f"エラー: {request_submissions['errors'][0].get('message')}"))
-        exit(-1)
+        sys.exit(1)
 
     for entry in request_submissions:
         if entry['user_id'] in user_dict and entry['user_id'] not in selected_tutors_id:
@@ -250,7 +264,7 @@ def main():
     questions = [
             {
                 'type': 'confirm',
-                'message': '以上の内容で宜しいですか？',
+                'message': CONFIRM_MESSAGE,
                 'name': 'confirm_tutors',
                 'default': False,
             }
@@ -259,7 +273,7 @@ def main():
     proceed = answers['confirm_tutors']
 
     if proceed:
-        logger.info('作成中...')
+        logger.info('実行中...')
         for i in range(0, len(user_asset_pairings)):
             for j in range(1, len(user_asset_pairings[i])):
                 reply = create_post_request(
