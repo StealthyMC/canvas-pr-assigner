@@ -213,9 +213,11 @@ def main():
 
     request_submissions = create_get_request(
         API_URL + f'api/v1/courses/{course_number}/assignments/{assignment_number}/submissions',
-        AUTH_HEADER)
+        AUTH_HEADER, {'per_page': 100})
     request_users = create_get_request(API_URL + f'api/v1/courses/{course_number}/users',
-                                       AUTH_HEADER)
+                                       AUTH_HEADER, {'per_page': 100})
+
+
 
     # add tutor user_id's to list
     user_asset_pairings = []
@@ -253,6 +255,7 @@ def main():
         user_asset_pairings[i % len(selected_tutors)].append(submission_list[i])
 
     logger.info('コマンドを確認：')
+    logger.info(len(user_asset_pairings[0]))
     for i in range(0, len(user_asset_pairings)):
         for j in range(1, len(user_asset_pairings[i])):
             logger.info(
