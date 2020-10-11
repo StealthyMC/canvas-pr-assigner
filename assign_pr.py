@@ -6,13 +6,11 @@ import argparse
 import json
 import logging
 import sys
-
 import requests
+
 # fancy CLI
 from PyInquirer import prompt
 from clint.textui import colored
-from examples import custom_style_1
-#from prettytable import PrettyTable
 
 API_URL = 'https://unr.canvaslms.com/'
 
@@ -66,28 +64,31 @@ def main():
                 'message': 'トークンのファイル名を入力：',
             }
         ]
-        answers = prompt(questions, style=custom_style_1)
+        answers = prompt(questions)
         api_token_file = answers['token_file']
     else:
         api_token_file = args.API_TOKEN
 
-    API_TOKEN = ''
     # open API token text file and get the line from it
     logger.info(f'{api_token_file}を読み込み中...')
     try:
         f = open(api_token_file, encoding='utf-8')
-        API_TOKEN = f.readline()
-        logger.info(colored.green('API token file read successfully.'))
+        for line in f:
+            pass
+        API_TOKEN = str(line)
+        logger.info(colored.green('トークンファイルがロードされました。'))
     except IOError as e:
-        logger.error(colored.red(f'I/O error {e.errno}: {e.strerror}'))
+        logger.error(colored.red(f'I/O エラー {e.errno}: {e.strerror}'))
         sys.exit()
-    # except:
-    # logger.error(colored.red('Error reading API token file. Check the filename and ensure that it is correct.'))
-    AUTH_HEADER = {'Authorization': f'Bearer {API_TOKEN}'.strip('\n')}
+
+    # strip extra characters off of token string
+    API_TOKEN = API_TOKEN.strip('}').strip('\n')
+    AUTH_HEADER = {'Authorization': f'Bearer {API_TOKEN}'}
+
     # get course number
     proceed = False
     course_number = 0
-    course_name = ''
+
     while not proceed:
         questions = [
             {
@@ -96,7 +97,7 @@ def main():
                 'message': 'コース番号を入力：',
             }
         ]
-        answers = prompt(questions, style=custom_style_1)
+        answers = prompt(questions)
         course_number = answers['course_number']
         # confirm that the assignment number is valid
         json_reply = create_get_request(API_URL + f'api/v1/courses/{course_number}',
@@ -112,7 +113,7 @@ def main():
                     'default': False,
                 }
             ]
-            answers = prompt(questions, style=custom_style_1)
+            answers = prompt(questions)
             proceed = answers['confirm_course']
         except KeyError:
             logger.error(colored.red(f"エラー: {json_reply['errors'][0].get('message')}"))
@@ -129,7 +130,7 @@ def main():
                 'message': 'アサインメント番号を入力：',
             }
         ]
-        answers = prompt(questions, style=custom_style_1)
+        answers = prompt(questions)
         assignment_number = answers['assignment_number']
         # confirm that the assignment number is valid
         json_reply = create_get_request(API_URL + f'api/v1/courses/{course_number}/assignments/{assignment_number}',
@@ -144,7 +145,7 @@ def main():
                     'default': False,
                 }
             ]
-            answers = prompt(questions, style=custom_style_1)
+            answers = prompt(questions)
             proceed = answers['confirm_assignment']
         except KeyError:
             logger.error(colored.red(f"エラー: {json_reply['errors'][0].get('message')}"))
@@ -186,7 +187,7 @@ def main():
             }
         ]
         # prompt user and store results into 'answers'
-        answers = prompt(questions, style=custom_style_1)
+        answers = prompt(questions)
         selected_tutors = answers['tutor_select']
         # store selected user_ids designated as the peer reviewers
         logger.info('選ばれたチューターを確認：')
@@ -200,7 +201,7 @@ def main():
                 'default': False,
             }
         ]
-        answers = prompt(questions, style=custom_style_1)
+        answers = prompt(questions)
         proceed = answers['confirm_tutors']
 
     # create student dictionary, but remove designated tutors from list
@@ -272,7 +273,7 @@ def main():
                 'default': False,
             }
         ]
-    answers = prompt(questions, style=custom_style_1)
+    answers = prompt(questions)
     proceed = answers['confirm_tutors']
 
     if proceed:
